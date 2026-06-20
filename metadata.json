@@ -3,5 +3,6 @@
   "description": "A futuristic image generation and editing tool designed for creating high-quality presentation backgrounds and visualizing AI-driven career paths for students.",
   "requestFramePermissions": [
     "camera"
-  ]
+  ],
+  "majorCapabilities": []
 }

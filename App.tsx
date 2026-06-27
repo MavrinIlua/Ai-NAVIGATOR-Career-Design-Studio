@@ -5,7 +5,7 @@ import ImageGenerator from './components/ImageGenerator';
 import ImageEditor from './components/ImageEditor';
 import CareerExplorer from './components/CareerExplorer';
 import Gallery from './components/Gallery';
-import { AppMode, GeneratedMedia } from './types';
+import { AppMode, GeneratedMedia, AICareer } from './types';
 
 // Fix: Use AIStudio interface and remove readonly to match environment expectations
 interface AIStudio {
@@ -21,6 +21,7 @@ declare global {
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.IMAGE);
+  const [activeTrial, setActiveTrial] = useState<AICareer | null>(null);
   // Default to true during initial check to avoid flicker, then update based on hasSelectedApiKey
   const [hasApiKey, setHasApiKey] = useState<boolean>(true);
   const [items, setItems] = useState<GeneratedMedia[]>(() => {
@@ -125,11 +126,23 @@ const App: React.FC = () => {
           
           <div className="lg:col-span-6 space-y-10">
             {mode === AppMode.IMAGE || mode === AppMode.VIDEO ? (
-              <ImageGenerator mode={mode} onMediaGenerated={handleMediaResult} />
+              <ImageGenerator 
+                mode={mode} 
+                onMediaGenerated={handleMediaResult} 
+                activeTrial={activeTrial}
+                onResetTrial={() => setActiveTrial(null)}
+              />
             ) : mode === AppMode.EDIT ? (
               <ImageEditor onImageEdited={handleMediaResult} />
             ) : mode === AppMode.CAREER ? (
-              <CareerExplorer onMediaGenerated={handleMediaResult} />
+              <CareerExplorer 
+                onMediaGenerated={handleMediaResult} 
+                activeTrial={activeTrial}
+                onStartTrial={(career) => {
+                  setActiveTrial(career);
+                  setMode(AppMode.IMAGE);
+                }}
+              />
             ) : (
               <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                 <h2 className="text-2xl font-black text-gray-900 mb-6 uppercase tracking-tight">Статистика</h2>

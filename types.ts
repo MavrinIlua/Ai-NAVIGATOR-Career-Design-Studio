@@ -8,6 +8,9 @@ export interface GeneratedMedia {
   prompt: string;
   aspectRatio: AspectRatio;
   timestamp: number;
+  careerId?: string;
+  careerTitle?: string;
+  isTrial?: boolean;
 }
 
 export enum AppMode {
@@ -23,4 +26,9 @@ export interface AICareer {
   title: string;
   category: string;
   description: string;
+  tasks: string[];
+  schedule: string[];
+  questDescription: string;
+  suggestedPrompts: { title: string; prompt: string; style?: string }[];
+  proTips: string[];
 }

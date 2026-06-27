@@ -1,8 +1,10 @@
 {
-  "name": "Copy of Copy of AI Career Navigator Studio",
-  "description": "A futuristic image generation and editing tool designed for creating high-quality presentation backgrounds and visualizing AI-driven career paths for students.",
+  "name": "AI Career Navigator Studio",
+  "description": "An interactive digital professional navigation simulator for school and university students, modeling AI-driven career paths and practical trials.",
   "requestFramePermissions": [
     "camera"
   ],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

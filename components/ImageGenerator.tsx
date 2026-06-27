@@ -1,21 +1,40 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateImage, generateVideo } from '../geminiService';
 import { ASPECT_RATIOS } from '../constants';
-import { GeneratedMedia, AspectRatio, AppMode } from '../types';
+import { GeneratedMedia, AspectRatio, AppMode, AICareer } from '../types';
 
 interface ImageGeneratorProps {
   mode: AppMode;
   onMediaGenerated: (media: GeneratedMedia) => void;
+  activeTrial: AICareer | null;
+  onResetTrial: () => void;
 }
 
-const ImageGenerator: React.FC<ImageGeneratorProps> = ({ mode, onMediaGenerated }) => {
+const ImageGenerator: React.FC<ImageGeneratorProps> = ({ 
+  mode, 
+  onMediaGenerated,
+  activeTrial,
+  onResetTrial
+}) => {
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('Photorealistic, cinematic lighting, 8k');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   const [usePro, setUsePro] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-set suggested templates when active trial changes
+  useEffect(() => {
+    if (activeTrial && activeTrial.suggestedPrompts && activeTrial.suggestedPrompts.length > 0) {
+      setPrompt(activeTrial.suggestedPrompts[0].prompt);
+      if (activeTrial.suggestedPrompts[0].style) {
+        setStyle(activeTrial.suggestedPrompts[0].style);
+      }
+    } else {
+      setPrompt('');
+      setStyle('Photorealistic, cinematic lighting, 8k');
+    }
+  }, [activeTrial]);
 
   const handleAction = async () => {
     if (!prompt.trim()) return;
@@ -43,6 +62,9 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ mode, onMediaGenerated 
         prompt: prompt,
         aspectRatio: aspectRatio,
         timestamp: Date.now(),
+        careerId: activeTrial ? activeTrial.id : undefined,
+        careerTitle: activeTrial ? activeTrial.title : undefined,
+        isTrial: activeTrial ? true : false,
       };
       onMediaGenerated(newMedia);
     } catch (err) {
@@ -57,8 +79,73 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ mode, onMediaGenerated 
     }
   };
 
+  const loadPromptPreset = (pText: string, pStyle?: string) => {
+    setPrompt(pText);
+    if (pStyle) setStyle(pStyle);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Active Professional Trial Mission Board */}
+      {activeTrial && (
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-md shadow-amber-50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-black uppercase tracking-widest bg-amber-600 text-white px-2.5 py-1 rounded-md">
+              🎯 Активная проба: {activeTrial.title}
+            </span>
+            <button 
+              onClick={onResetTrial}
+              className="text-[10px] font-extrabold text-amber-800 hover:text-red-600 uppercase transition-colors"
+            >
+              Сбросить пробу ×
+            </button>
+          </div>
+          
+          <div className="space-y-2">
+            <h4 className="text-xs font-black text-amber-950 uppercase tracking-wider">
+              Ваша профессиональная задача:
+            </h4>
+            <p className="text-xs text-amber-800 leading-relaxed font-medium">
+              {activeTrial.questDescription}
+            </p>
+          </div>
+
+          {/* Quick loading buttons */}
+          <div className="space-y-2 pt-2 border-t border-amber-200/40">
+            <h5 className="text-[10px] font-black text-amber-950 uppercase tracking-widest">
+              Учебные заготовки (кликни для загрузки):
+            </h5>
+            <div className="flex flex-col gap-1.5">
+              {activeTrial.suggestedPrompts.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => loadPromptPreset(p.prompt, p.style)}
+                  className="w-full text-left bg-white hover:bg-amber-100/50 p-2.5 rounded-xl border border-amber-200/50 text-[10px] text-amber-900 font-bold transition-all shadow-sm flex items-center justify-between group"
+                >
+                  <span className="truncate pr-4">📝 {p.title}</span>
+                  <span className="text-[9px] text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity uppercase font-black">
+                    Загрузить →
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Pro tips checklist */}
+          <div className="pt-2 border-t border-amber-200/40 space-y-1.5">
+            <h5 className="text-[10px] font-black text-amber-950 uppercase tracking-widest">
+              💡 Советы эксперта для этого кейса:
+            </h5>
+            <ul className="list-disc list-inside text-[10px] text-amber-800 space-y-1 leading-relaxed">
+              {activeTrial.proTips.map((tip, idx) => (
+                <li key={idx}>{tip}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Main Form */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -70,8 +157,12 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ mode, onMediaGenerated 
                 )}
              </div>
              <div>
-               <h2 className="text-xl font-bold text-gray-900">{mode === AppMode.VIDEO ? 'Генерация Видео' : 'Генерация Изображения'}</h2>
-               <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider">Создайте контент в любом стиле</p>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {mode === AppMode.VIDEO ? 'Генерация Видео' : 'Генерация Изображения'}
+                </h2>
+                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider">
+                  {activeTrial ? `Лаборатория роли: ${activeTrial.title}` : 'Создайте контент в любом стиле'}
+                </p>
              </div>
           </div>
 
@@ -98,7 +189,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ mode, onMediaGenerated 
                 if (error) setError(null);
               }}
               placeholder="Например: Робот-повар в уютном кафе на Марсе..."
-              className="w-full h-24 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 transition-all outline-none"
+              className="w-full h-28 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 transition-all outline-none text-sm font-medium leading-relaxed"
             />
           </div>
 
@@ -109,7 +200,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ mode, onMediaGenerated 
               value={style}
               onChange={(e) => setStyle(e.target.value)}
               placeholder="Например: Киберпанк, Неоновое освещение, 3D рендер..."
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 transition-all outline-none"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 transition-all outline-none text-sm font-medium"
             />
           </div>
 
@@ -159,7 +250,11 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ mode, onMediaGenerated 
             </>
           ) : (
             <>
-              {mode === AppMode.VIDEO ? 'СОЗДАТЬ ВИДЕО' : 'СОЗДАТЬ ФОТО'}
+              {activeTrial ? (
+                <span>СДАТЬ РАБОТУ ПО КЕЙСУ</span>
+              ) : (
+                <span>{mode === AppMode.VIDEO ? 'СОЗДАТЬ ВИДЕО' : 'СОЗДАТЬ ФОТО'}</span>
+              )}
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </>
           )}

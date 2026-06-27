@@ -82,12 +82,33 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDelete }) => {
               </div>
             </div>
             <div className="p-4">
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">
-                {new Date(item.timestamp).toLocaleDateString()}
-              </p>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                  {new Date(item.timestamp).toLocaleDateString()}
+                </span>
+                {item.careerTitle && (
+                  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                    item.isTrial 
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                      : 'bg-red-50 text-red-600 border border-red-100'
+                  }`}>
+                    {item.isTrial ? '🏆 КЕЙС' : '👤 ПРОФИЛЬ'}
+                  </span>
+                )}
+              </div>
+              
               <p className="text-sm text-gray-700 line-clamp-2 font-medium leading-relaxed">
                 "{item.prompt}"
               </p>
+
+              {item.careerTitle && (
+                <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase">Профессия:</span>
+                  <span className="text-[10px] text-gray-900 font-black uppercase tracking-tight">
+                    {item.careerTitle}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         );

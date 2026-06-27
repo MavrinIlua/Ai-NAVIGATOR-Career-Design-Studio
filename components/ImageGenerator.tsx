@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { generateImage, generateVideo } from '../geminiService';
 import { ASPECT_RATIOS } from '../constants';
 import { GeneratedMedia, AspectRatio, AppMode, AICareer } from '../types';
+import { SimulationTimer } from './SimulationTimer';
 
 interface ImageGeneratorProps {
   mode: AppMode;
   onMediaGenerated: (media: GeneratedMedia) => void;
   activeTrial: AICareer | null;
   onResetTrial: () => void;
+  onLoadingStateChange?: (loading: boolean) => void;
 }
 
 const ImageGenerator: React.FC<ImageGeneratorProps> = ({ 
   mode, 
   onMediaGenerated,
   activeTrial,
-  onResetTrial
+  onResetTrial,
+  onLoadingStateChange
 }) => {
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('Photorealistic, cinematic lighting, 8k');
@@ -22,6 +25,9 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({
   const [usePro, setUsePro] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const simRealSecondsRef = useRef(0);
+  const simHoursElapsedRef = useRef(0);
 
   // Auto-set suggested templates when active trial changes
   useEffect(() => {
@@ -39,6 +45,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({
   const handleAction = async () => {
     if (!prompt.trim()) return;
     setLoading(true);
+    if (onLoadingStateChange) onLoadingStateChange(true);
     setError(null);
     try {
       const fullPrompt = `${prompt}. Style: ${style}. High quality, detailed.`;
@@ -67,6 +74,27 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({
         isTrial: activeTrial ? true : false,
       };
       onMediaGenerated(newMedia);
+
+      // Save productivity log if in trial/simulation mode
+      if (activeTrial) {
+        const log = {
+          id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11),
+          careerId: activeTrial.id,
+          careerTitle: activeTrial.title,
+          realDurationSeconds: simRealSecondsRef.current || 5, // Fallback to 5s if immediate
+          simulatedHoursSpent: simHoursElapsedRef.current || 0.5,
+          completedAt: Date.now(),
+          studentName: localStorage.getItem('student_name_v2') || 'Маврин Илья Борисович'
+        };
+        try {
+          const existingLogs = localStorage.getItem('nav_productivity_logs');
+          const parsedLogs = existingLogs ? JSON.parse(existingLogs) : [];
+          parsedLogs.unshift(log);
+          localStorage.setItem('nav_productivity_logs', JSON.stringify(parsedLogs));
+        } catch (e) {
+          console.error("Failed to save productivity log", e);
+        }
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Неизвестная ошибка';
       setError(message);
@@ -76,6 +104,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({
       }
     } finally {
       setLoading(false);
+      if (onLoadingStateChange) onLoadingStateChange(false);
     }
   };
 
@@ -143,6 +172,20 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({
             </ul>
           </div>
         </div>
+      )}
+
+      {/* Ticking Workday Simulation Timer */}
+      {activeTrial && (
+        <SimulationTimer 
+          activeTrial={activeTrial} 
+          onTimeSpentUpdate={(realSecs, simHrs) => {
+            simRealSecondsRef.current = realSecs;
+            simHoursElapsedRef.current = simHrs;
+          }}
+          onWorkdayEnded={() => {
+            console.log("Simulated workday ended.");
+          }}
+        />
       )}
 
       {/* Main Form */}
@@ -239,14 +282,14 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({
           disabled={loading || !prompt.trim()}
           className={`mt-6 w-full py-4 rounded-xl font-black text-lg shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
             loading 
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+              ? 'bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 text-gray-400 cursor-not-allowed animate-pulse shadow-sm' 
               : mode === AppMode.VIDEO ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-200' : 'bg-red-600 hover:bg-red-700 text-white shadow-red-200'
           }`}
         >
           {loading ? (
             <>
-              <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              {mode === AppMode.VIDEO ? 'Создаем видео...' : 'Генерируем...'}
+              <svg className="animate-spin h-6 w-6 text-gray-400" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              {mode === AppMode.VIDEO ? 'СИНТЕЗ ВИДЕОКАДРОВ...' : 'РЕНДЕРИНГ ИЛЛЮСТРАЦИИ...'}
             </>
           ) : (
             <>

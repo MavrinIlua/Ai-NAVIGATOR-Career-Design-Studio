@@ -6,9 +6,10 @@ import { GeneratedMedia } from '../types';
 
 interface ImageEditorProps {
   onImageEdited: (media: GeneratedMedia) => void;
+  onLoadingStateChange?: (loading: boolean) => void;
 }
 
-const ImageEditor: React.FC<ImageEditorProps> = ({ onImageEdited }) => {
+const ImageEditor: React.FC<ImageEditorProps> = ({ onImageEdited, onLoadingStateChange }) => {
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,6 +30,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ onImageEdited }) => {
   const handleEdit = async () => {
     if (!sourceImage || !prompt.trim()) return;
     setLoading(true);
+    if (onLoadingStateChange) onLoadingStateChange(true);
     setError(null);
     try {
       const editedUrl = await editImage(sourceImage, prompt);
@@ -51,6 +53,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ onImageEdited }) => {
       }
     } finally {
       setLoading(false);
+      if (onLoadingStateChange) onLoadingStateChange(false);
     }
   };
 
@@ -126,7 +129,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ onImageEdited }) => {
               disabled={loading || !prompt.trim()}
               className={`w-full py-3 px-6 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
                 loading 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  ? 'bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 text-gray-400 cursor-not-allowed animate-pulse shadow-sm' 
                   : 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200 active:scale-95'
               }`}
             >
@@ -136,11 +139,11 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ onImageEdited }) => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Processing...
+                  ОБРАБОТКА ИЗОБРАЖЕНИЯ...
                 </>
               ) : (
                 <>
-                  Apply Changes
+                  Применить изменения
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                 </>
               )}

@@ -11,6 +11,7 @@ export interface GeneratedMedia {
   careerId?: string;
   careerTitle?: string;
   isTrial?: boolean;
+  comment?: string;
 }
 
 export enum AppMode {

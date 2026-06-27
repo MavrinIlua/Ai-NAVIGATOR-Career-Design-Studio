@@ -1,16 +1,19 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { GeneratedMedia } from '../types';
 
 interface GalleryProps {
   items: GeneratedMedia[];
   onDelete: (id: string) => void;
+  onUpdateComment?: (id: string, comment: string) => void;
 }
 
-const Gallery: React.FC<GalleryProps> = ({ items, onDelete }) => {
+const Gallery: React.FC<GalleryProps> = ({ items, onDelete, onUpdateComment }) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [tempComment, setTempComment] = useState<string>('');
+
   if (items.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
+      <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm animate-in fade-in duration-500">
         <div className="w-20 h-20 bg-gray-100 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
         </div>
@@ -21,7 +24,7 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDelete }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
       {items.map((item) => {
         const ar = item.aspectRatio || "16:9";
         const type = item.type || "image";
@@ -30,7 +33,7 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDelete }) => {
         return (
           <div 
             key={item.id} 
-            className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300"
+            className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full"
           >
             <div className="relative overflow-hidden bg-gray-100" style={{ aspectRatio: ar.replace(':', '/') }}>
               {isExpired ? (
@@ -81,34 +84,97 @@ const Gallery: React.FC<GalleryProps> = ({ items, onDelete }) => {
                 </div>
               </div>
             </div>
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                  {new Date(item.timestamp).toLocaleDateString()}
-                </span>
-                {item.careerTitle && (
-                  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                    item.isTrial 
-                      ? 'bg-amber-100 text-amber-800 border border-amber-200' 
-                      : 'bg-red-50 text-red-600 border border-red-100'
-                  }`}>
-                    {item.isTrial ? '🏆 КЕЙС' : '👤 ПРОФИЛЬ'}
+
+            <div className="p-4 flex flex-col flex-grow justify-between">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                    {new Date(item.timestamp).toLocaleDateString()}
                   </span>
+                  {item.careerTitle && (
+                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                      item.isTrial 
+                        ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                        : 'bg-red-50 text-red-600 border border-red-100'
+                    }`}>
+                      {item.isTrial ? '🏆 КЕЙС' : '👤 ПРОФИЛЬ'}
+                    </span>
+                  )}
+                </div>
+                
+                <p className="text-sm text-gray-700 font-medium leading-relaxed mb-3">
+                  "{item.prompt}"
+                </p>
+
+                {item.careerTitle && (
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase">Профессия:</span>
+                    <span className="text-[10px] text-gray-900 font-black uppercase tracking-tight">
+                      {item.careerTitle}
+                    </span>
+                  </div>
                 )}
               </div>
-              
-              <p className="text-sm text-gray-700 line-clamp-2 font-medium leading-relaxed">
-                "{item.prompt}"
-              </p>
 
-              {item.careerTitle && (
-                <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase">Профессия:</span>
-                  <span className="text-[10px] text-gray-900 font-black uppercase tracking-tight">
-                    {item.careerTitle}
+              {/* Reflection Comments / Notes block */}
+              <div className="mt-2 pt-3 border-t border-gray-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider flex items-center gap-1">
+                    📝 Рефлексия (Заметки):
                   </span>
+                  {editingId !== item.id && (
+                    <button
+                      onClick={() => {
+                        setEditingId(item.id);
+                        setTempComment(item.comment || '');
+                      }}
+                      className="text-[9px] font-black text-red-600 hover:text-red-700 uppercase tracking-widest transition-colors"
+                    >
+                      {item.comment ? 'Изм.' : '+ Добавить'}
+                    </button>
+                  )}
                 </div>
-              )}
+
+                {editingId === item.id ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={tempComment}
+                      onChange={(e) => setTempComment(e.target.value)}
+                      placeholder="Почему выбран этот путь? Какие ИИ-инструменты помогли? Что нового удалось узнать в симуляции?"
+                      className="w-full p-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-700 focus:bg-white focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none transition-all resize-none h-20 placeholder:text-gray-400"
+                    />
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="px-2 py-1 text-[9px] font-black uppercase text-gray-400 hover:text-gray-600"
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (onUpdateComment) onUpdateComment(item.id, tempComment);
+                          setEditingId(null);
+                        }}
+                        className="px-2.5 py-1 bg-red-600 text-white rounded text-[9px] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-sm"
+                      >
+                        Сохранить
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50/70 p-2.5 rounded-xl border border-gray-100/50 min-h-[36px] flex items-center">
+                    {item.comment ? (
+                      <p className="text-[11px] text-gray-600 font-medium italic leading-relaxed">
+                        «{item.comment}»
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-gray-400 font-medium italic leading-relaxed">
+                        Напишите свои выводы по кейсу для дипломной работы...
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );
